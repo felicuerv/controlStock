@@ -136,61 +136,68 @@ const Ventas = () => {
   const manejarSubmit = async (e) => {
     e.preventDefault();
     const { clienteId, fecha, formaPago, estado, producto, cantidad, precioUnitario, total } = nuevaVenta;
-    if (
-        clienteId.trim() === "" ||
-        fecha.trim() === "" ||
-        formaPago.trim() === "" ||
-        estado.trim() === "" ||
-        producto.trim() === "" ||
-        Number(cantidad) <= 0 ||
-        Number(precioUnitario) <= 0 ||
-        Number(total) <= 0
-      ) {
-        toast({ title: "Faltan campos", status: "warning" });
+  
+    if (!clienteId || !fecha || !formaPago || !estado || !producto || !cantidad || !precioUnitario) {
+      toast({ title: "Faltan campos", status: "warning" });
+      return;
+    }
+  
+    try {
+      const cliente = clientes.find(c => c.id === clienteId);
+      if (!cliente) {
+        toast({ title: "Cliente no válido", status: "error" });
         return;
       }
-      
-    const cliente = clientes.find(c => c.id === clienteId);
-    const productoQuery = query(collection(db, "productos"), where("nombre", "==", producto));
-    const productoSnap = await getDocs(productoQuery);
-    if (productoSnap.empty) {
-      toast({ title: "Producto no encontrado", status: "error" });
-      return;
-    }
-    const productoDoc = productoSnap.docs[0];
-    const productoData = productoDoc.data();
-    const nuevoStock = (productoData.stock || 0) - Number(cantidad);
-    if (nuevoStock < 0) {
-      toast({ title: "Stock insuficiente", status: "error" });
-      return;
-    }
-    const ventaData = {
-      clienteId: cliente?.id || "",
-      clienteNombre: cliente?.nombre || "",
-      fecha,
-      formaPago,
-      estado,
-      producto,
-      cantidad: Number(cantidad),
-      precioUnitario: Number(precioUnitario),
-      total: Number(total),
-      fechaAlta: new Date().toISOString()
-    };
-    try {
-      if (editandoId) {
-        await updateDoc(doc(db, "ventas", editandoId), ventaData);
-      } else {
-        await addDoc(ventasRef, ventaData);
-        await updateDoc(doc(db, "productos", productoDoc.id), { stock: nuevoStock });
+  
+      const productoRef = doc(db, "productos", producto); // producto es el ID del producto
+      const productoSnap = await getDoc(productoRef);
+  
+      if (!productoSnap.exists()) {
+        toast({ title: "Producto no encontrado", status: "error" });
+        return;
       }
-      toast({ title: "Venta guardada", status: "success" });
+  
+      const productoData = productoSnap.data();
+  
+      // Validación de stock si está completada
+      if (estado === "Completada" && productoData.stock < Number(cantidad)) {
+        toast({ title: "Stock insuficiente", status: "error" });
+        return;
+      }
+  
+      const nueva = {
+        clienteId,
+        clienteNombre: cliente.nombre,
+        fecha,
+        formaPago,
+        estado,
+        productoId: producto,
+        productoNombre: productoData.nombre,
+        cantidad: Number(cantidad),
+        precioUnitario: Number(precioUnitario),
+        total: Number(total),
+        fechaAlta: new Date().toISOString(),
+      };
+  
+      await addDoc(collection(db, "ventas"), nueva);
+  
+      // Actualizar stock solo si está completada
+      if (estado === "Completada") {
+        await updateDoc(productoRef, {
+          stock: productoData.stock - Number(cantidad),
+        });
+      }
+  
+      toast({ title: "Venta registrada", status: "success" });
       limpiarFormulario();
       obtenerVentas();
-      obtenerProductos();
-    } catch (err) {
-      toast({ title: "Error", description: err.message, status: "error" });
+  
+    } catch (error) {
+      console.error("Error al guardar venta:", error);
+      toast({ title: "Error", description: error.message, status: "error" });
     }
   };
+  
 
   const exportarAExcel = () => {
     const data = ventas.map((v) => ({
@@ -311,7 +318,7 @@ const Ventas = () => {
           transition={{ type: "spring", stiffness: 260, damping: 20 }}
         >
           <Box p={4} bg="gray.800" borderRadius="md" shadow="md">
-            <Heading size="md" mb={2}>{v.producto}</Heading>
+            <Heading size="md" mb={2}>{v.productoNombre}</Heading>
             <Text>🧍 Cliente: {v.clienteNombre || "Sin cliente"}</Text>
             <Text>📅 Fecha: {v.fecha}</Text>
             <Text>💰 Total: ${v.total}</Text>
@@ -340,7 +347,7 @@ const Ventas = () => {
         transition={{ type: "spring", stiffness: 260, damping: 20 }}
       >
         <Box p={4} bg="gray.800" borderRadius="md" shadow="md">
-          <Heading size="lg" mb={1}>{v.producto}</Heading>
+          <Heading size="lg" mb={1}>{v.productoNombre}</Heading>
           <Text>🧍 Cliente: {v.clienteNombre || "Sin cliente"}</Text>
           <Text>📅 Fecha: {v.fecha}</Text>
           <Text>💰 Total: ${v.total}</Text>
@@ -358,51 +365,145 @@ const Ventas = () => {
     ))}
   </SimpleGrid>
 )}
-      <Drawer isOpen={isOpen} placement="right" onClose={onClose} size="md">
-        <DrawerOverlay />
-        <DrawerContent bg="gray.800" color="white">
-          <DrawerCloseButton />
-          <DrawerHeader borderBottomWidth="1px" borderColor="gray.600">
-            {editandoId ? "✏️ Editar venta" : "➕ Agregar venta"}
-          </DrawerHeader>
-          <DrawerBody>
-            <form id="formVenta" onSubmit={manejarSubmit}>
-              <Grid templateColumns="1fr" gap={4}>
-                <Select placeholder="Seleccionar cliente" name="clienteId" value={nuevaVenta.clienteId} onChange={manejarCambio} bg="gray.700" color="white">
-                  {clientes.map((cli) => (
-                    <option key={cli.id} value={cli.id} style={{ background: "#1A202C" }}>{cli.nombre}</option>
-                  ))}
-                </Select>
-                <Input name="fecha" type="date" value={nuevaVenta.fecha} onChange={manejarCambio} bg="gray.700" borderColor="gray.600" />
-                <Select name="formaPago" value={nuevaVenta.formaPago} onChange={manejarCambio} bg="gray.700" color="white">
-                  <option value="efectivo" style={{ background: "#1A202C" }}>Efectivo</option>
-                  <option value="tarjeta" style={{ background: "#1A202C" }}>Tarjeta</option>
-                  <option value="transferencia" style={{ background: "#1A202C" }}>Transferencia</option>
-                </Select>
-                <Select name="estado" value={nuevaVenta.estado} onChange={manejarCambio} bg="gray.700" color="white">
-                  <option value="Presupuesto" style={{ background: "#1A202C" }}>Presupuesto</option>
-                  <option value="En proceso" style={{ background: "#1A202C" }}>En proceso</option>
-                  <option value="Completada" style={{ background: "#1A202C" }}>Completada</option>
-                </Select>
-                <Select name="producto" value={nuevaVenta.producto} onChange={manejarCambio} bg="gray.700" color="white">
-                  {productos.map((prod) => (
-                    <option key={prod.id} value={prod.nombre} style={{ background: "#1A202C" }}>{prod.nombre}</option>
-                  ))}
-                </Select>
-                <HStack>
-                  <Input name="cantidad" type="number" placeholder="Cantidad" value={nuevaVenta.cantidad} onChange={manejarCambio} bg="gray.700" borderColor="gray.600" />
-                  <Input name="precioUnitario" type="number" placeholder="Precio Unitario" value={nuevaVenta.precioUnitario} onChange={manejarCambio} bg="gray.700" borderColor="gray.600" />
-                </HStack>
-                <Input name="total" type="number" placeholder="Total" value={nuevaVenta.total} readOnly bg="gray.700" borderColor="gray.600" />
-              </Grid>
-            </form>
-          </DrawerBody>
-          <DrawerFooter borderTopWidth="1px" borderColor="gray.600">
-            <Button variant="outline" mr={3} onClick={limpiarFormulario} bg="gray.700" color="white" _hover={{ bg: "gray.600" }}>Cancelar</Button>
-            <Button colorScheme="teal" type="submit" form="formVenta">{editandoId ? "Guardar cambios" : "Agregar venta"}</Button>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
+<Drawer isOpen={isOpen} placement="right" onClose={onClose} size="md">
+  <DrawerOverlay />
+  <DrawerContent bg="gray.800" color="white">
+    <DrawerCloseButton />
+    <DrawerHeader borderBottomWidth="1px" borderColor="gray.600">
+      {editandoId ? "✏️ Editar venta" : "➕ Agregar venta"}
+    </DrawerHeader>
+
+    {/* FORMULARIO CORRECTAMENTE POSICIONADO */}
+    <form onSubmit={manejarSubmit}>
+      <DrawerBody>
+        <Grid templateColumns="1fr" gap={4}>
+          <Select
+            placeholder="Seleccionar cliente"
+            name="clienteId"
+            value={nuevaVenta.clienteId}
+            onChange={manejarCambio}
+            bg="gray.700"
+            color="white"
+          >
+            {clientes.map((cli) => (
+              <option key={cli.id} value={cli.id} style={{ background: "#1A202C" }}>
+                {cli.nombre}
+              </option>
+            ))}
+          </Select>
+
+          <Input
+            name="fecha"
+            type="date"
+            value={nuevaVenta.fecha}
+            onChange={manejarCambio}
+            bg="gray.700"
+            borderColor="gray.600"
+          />
+
+          <Select
+            name="formaPago"
+            value={nuevaVenta.formaPago}
+            onChange={manejarCambio}
+            bg="gray.700"
+            color="white"
+          >
+            <option value="" disabled hidden>
+              Método de pago
+            </option>
+            <option value="efectivo" style={{ background: "#1A202C" }}>Efectivo</option>
+            <option value="tarjeta" style={{ background: "#1A202C" }}>Tarjeta</option>
+            <option value="transferencia" style={{ background: "#1A202C" }}>Transferencia</option>
+          </Select>
+
+          <Select
+            name="estado"
+            value={nuevaVenta.estado}
+            onChange={manejarCambio}
+            bg="gray.700"
+            color="white"
+          >
+            <option value="" disabled hidden>
+              Estado de la venta
+            </option>
+            <option value="Presupuesto" style={{ background: "#1A202C" }}>Presupuesto</option>
+            <option value="En proceso" style={{ background: "#1A202C" }}>En proceso</option>
+            <option value="Completada" style={{ background: "#1A202C" }}>Completada</option>
+          </Select>
+
+
+          {/* PRODUCTO: USAMOS ID COMO VALUE */}
+          <Select
+            name="producto"
+            value={nuevaVenta.producto}
+            onChange={manejarCambio}
+            bg="gray.700"
+            color="white"
+          >
+            <option value="" disabled hidden>
+              Seleccionar producto
+            </option>
+            {productos.map((prod) => (
+              <option key={prod.id} value={prod.id} style={{ background: "#1A202C" }}>
+                {prod.nombre}
+              </option>
+            ))}
+          </Select>
+
+
+          <HStack>
+            <Input
+              name="cantidad"
+              type="number"
+              placeholder="Cantidad"
+              value={nuevaVenta.cantidad}
+              onChange={manejarCambio}
+              bg="gray.700"
+              borderColor="gray.600"
+            />
+            <Input
+              name="precioUnitario"
+              type="number"
+              placeholder="Precio Unitario"
+              value={nuevaVenta.precioUnitario}
+              onChange={manejarCambio}
+              bg="gray.700"
+              borderColor="gray.600"
+            />
+          </HStack>
+
+          <Input
+            name="total"
+            type="number"
+            placeholder="Total"
+            value={nuevaVenta.total}
+            readOnly
+            bg="gray.700"
+            borderColor="gray.600"
+          />
+        </Grid>
+      </DrawerBody>
+
+      <DrawerFooter borderTopWidth="1px" borderColor="gray.600">
+        <Button
+          variant="outline"
+          mr={3}
+          onClick={limpiarFormulario}
+          bg="gray.700"
+          color="white"
+          _hover={{ bg: "gray.600" }}
+        >
+          Cancelar
+        </Button>
+
+        <Button colorScheme="teal" type="submit">
+          {editandoId ? "Guardar cambios" : "Agregar venta"}
+        </Button>
+      </DrawerFooter>
+    </form>
+  </DrawerContent>
+</Drawer>
+
     </Box>
   );
 };
