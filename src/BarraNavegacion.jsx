@@ -21,6 +21,7 @@ const BarraNavegacion = () => {
           icon={<FiBox />}
           aria-label="Productos"
           colorScheme={location.pathname === "/" ? "gray" : "warning"}
+          color={location.pathname === "/" ? "white" : "gray.300"}
           onClick={() => navigate("/")}
           fontSize="2xl"
           flex="1"
@@ -32,6 +33,7 @@ const BarraNavegacion = () => {
           icon={<FiUsers />}
           aria-label="Clientes"
           colorScheme={location.pathname === "/clientes" ? "gray" : "warning"}
+          color={location.pathname === "/clientes" ? "white" : "gray.300"}
           onClick={() => navigate("/clientes")}
           fontSize="2xl"
           flex="1"
@@ -42,6 +44,7 @@ const BarraNavegacion = () => {
           icon={<FiCreditCard />}
           aria-label="Compras"
           colorScheme={location.pathname === "/compras" ? "gray" : "warning"}
+          color={location.pathname === "/compras" ? "white" : "gray.300"}
           onClick={() => navigate("/compras")}
           fontSize="2xl"
           flex="1"
@@ -52,6 +55,7 @@ const BarraNavegacion = () => {
           icon={<FiShoppingCart />}
           aria-label="Ventas"
           colorScheme={location.pathname === "/ventas" ? "gray" : "warning"}
+          color={location.pathname === "/ventas" ? "white" : "gray.300"}
           onClick={() => navigate("/ventas")}
           fontSize="2xl"
           flex="1"
@@ -62,6 +66,7 @@ const BarraNavegacion = () => {
           icon={<FiSettings />}
           aria-label="Servicios"
           colorScheme={location.pathname === "/servicios" ? "gray" : "warning"}
+          color={location.pathname === "/servicios" ? "white" : "gray.300"}
           onClick={() => navigate("/servicios")}
           fontSize="2xl"
           flex="1"
