@@ -137,13 +137,14 @@ const Ventas = () => {
     e.preventDefault();
     const { clienteId, fecha, formaPago, estado, producto, cantidad, precioUnitario, total } = nuevaVenta;
     if (
-        clienteId === "" ||
-        fecha === "" ||
-        formaPago === "" ||
-        estado === "" ||
-        producto === "" ||
-        cantidad === "" ||
-        precioUnitario === ""
+        clienteId.trim() === "" ||
+        fecha.trim() === "" ||
+        formaPago.trim() === "" ||
+        estado.trim() === "" ||
+        producto.trim() === "" ||
+        Number(cantidad) <= 0 ||
+        Number(precioUnitario) <= 0 ||
+        Number(total) <= 0
       ) {
         toast({ title: "Faltan campos", status: "warning" });
         return;
