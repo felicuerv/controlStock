@@ -205,17 +205,22 @@ const Servicios = () => {
     }
   };
 
-  const editarServicio = (servicio) => {
-    setNuevoServicio({
-      ...servicio,
-      importe: servicio.importe?.toString() || "",
-      fechaIngreso: servicio.fechaIngreso || "",
-      fechaFinalizacion: servicio.fechaFinalizacion || "",
-      codigoInterno: servicio.codigoInterno || "",
-    });
-    setEditandoId(servicio.id);
-    onOpen();
-  };
+const editarServicio = (servicio) => {
+  setNuevoServicio({
+    cliente: servicio.cliente || "",
+    equipo: servicio.equipo || "",
+    estado: servicio.estado || "",
+    codigoInterno: servicio.codigoInterno || "",
+    descripcion: servicio.descripcion || "",
+    fechaIngreso: servicio.fechaIngreso || "",
+    fechaFinalizacion: servicio.fechaFinalizacion || "",
+    importe: servicio.importe?.toString() || "",
+    metodoPago: servicio.metodoPago || ""
+  });
+  setEditandoId(servicio.id);
+  onOpen();
+};
+
 
   const solicitarEliminacion = (servicio) => {
     setServicioAEliminar(servicio);
