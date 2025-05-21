@@ -210,7 +210,7 @@ const editarServicio = (servicio) => {
     cliente: servicio.cliente || "",
     equipo: servicio.equipo || "",
     estado: servicio.estado || "",
-    codigoInterno: servicio.codigoInterno || "",
+    codigoInterno: servicio.codigo || servicio.codigoInterno || "",
     descripcion: servicio.descripcion || "",
     fechaIngreso: servicio.fechaIngreso || "",
     fechaFinalizacion: servicio.fechaFinalizacion || "",
@@ -617,7 +617,7 @@ const editarServicio = (servicio) => {
                 <Input
                   placeholder="Código Interno"
                   name="codigoInterno"
-                  value={nuevoServicio.codigo}
+                  value={nuevoServicio.codigoInterno}
                   onChange={manejarCambio}
                   bg="gray.700"
                 />

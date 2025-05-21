@@ -242,9 +242,11 @@ const ServiciosCobrados = () => {
                   value={editandoServicio.metodoPago}
                   onChange={manejarCambio}
                 >
-                  <option value="efectivo">Efectivo</option>
-                  <option value="transferencia">Transferencia</option>
-                  <option value="tarjeta">Tarjeta</option>
+                  <option value="Efectivo">Efectivo</option>
+                  <option value="Transferencia">Transferencia</option>
+                  <option value="Tarjeta">Tarjeta</option>
+                  <option value="Cuenta Corriente">Cuenta Corriente</option>
+
                 </Select>
                 <Button colorScheme="teal" onClick={guardarCambios}>
                   Guardar cambios
