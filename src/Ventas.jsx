@@ -17,44 +17,84 @@ import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-// Función para generar factura tipo B PDF
+import logo from "./assets/logo.png";
+
+
+
 const generarFacturaPDF = (venta) => {
   const doc = new jsPDF();
   const fecha = new Date(venta.fecha).toLocaleDateString("es-AR");
 
-  doc.setFontSize(12);
-  doc.text("Factura B", 14, 15);
-  doc.text("Empresa XYZ S.R.L.", 14, 25);
-  doc.text("CUIT: 30-12345678-9", 14, 31);
-  doc.text("Condición frente al IVA: Responsable Inscripto", 14, 37);
-  doc.text("Dirección: Av. Siempre Viva 742, Córdoba", 14, 43);
-  doc.text("Tel: 0351-1234567", 14, 49);
+  const img = new Image();
+  img.src = logo;
 
-  doc.setFontSize(11);
-  doc.text(`Fecha: ${fecha}`, 150, 25);
-  doc.text(`Cliente: ${venta.clienteNombre}`, 150, 31);
-  doc.text(`Forma de pago: ${venta.formaPago}`, 150, 37);
-  doc.text(`Condición: ${venta.estado}`, 150, 43);
+  img.onload = () => {
+    // Logo
+    doc.addImage(img, "PNG", 14, 10, 30, 30);
 
-  autoTable(doc, {
-    startY: 60,
-    head: [["Producto", "Cantidad", "Precio Unitario", "Total"]],
-    body: [
-      [
-        venta.producto,
-        venta.cantidad,
-        `$${venta.precioUnitario.toFixed(2)}`,
-        `$${venta.total.toFixed(2)}`
-      ]
-    ],
-    styles: { halign: "center" },
-    headStyles: { fillColor: [100, 100, 100] }
-  });
+    // Encabezado
+    doc.setFontSize(18);
+    doc.text("Factura B", 105, 20, null, null, "center");
 
-  doc.setFontSize(12);
-  doc.text(`TOTAL: $${venta.total.toFixed(2)}`, 14, doc.lastAutoTable.finalY + 15);
-  doc.save(`Factura_${venta.clienteNombre}_${fecha}.pdf`);
+    doc.setFontSize(12);
+    doc.text("Ponce Refrigeración", 105, 30, null, null, "center");
+    doc.text("CUIT: 30-12345678-9", 105, 38, null, null, "center");
+    doc.text("Condición frente al IVA: Responsable Inscripto", 105, 46, null, null, "center");
+    doc.text("Dirección: Chile 1178, Villa Carlos Paz", 105, 54, null, null, "center");
+    doc.text("Tel: 3541 59-1732", 105, 62, null, null, "center");
+
+    // Datos del cliente
+    const yDatos = 75;
+    doc.setFontSize(11);
+    doc.text(`Fecha: ${fecha}`, 14, yDatos);
+    doc.text(`Cliente: ${venta.clienteNombre}`, 14, yDatos + 8);
+    doc.text(`Forma de pago: ${venta.formaPago}`, 14, yDatos + 16);
+    doc.text(`Condición: ${venta.estado}`, 14, yDatos + 24);
+
+    // Tabla
+    autoTable(doc, {
+      startY: yDatos + 35,
+      head: [["Producto", "Cantidad", "Precio Unitario", "Total"]],
+      body: [
+        [
+          venta.producto,
+          venta.cantidad,
+          `$${venta.precioUnitario.toFixed(2)}`,
+          `$${venta.total.toFixed(2)}`
+        ]
+      ],
+      styles: {
+        halign: "center",
+        fontSize: 10,
+        cellPadding: 4
+      },
+      headStyles: {
+        fillColor: [54, 162, 235],
+        textColor: [255, 255, 255],
+        fontStyle: "bold"
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 245]
+      },
+      theme: "striped"
+    });
+
+    // Total final
+    const finalY = doc.lastAutoTable.finalY + 15;
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`TOTAL A PAGAR: $${venta.total.toFixed(2)}`, 14, finalY);
+
+    doc.save(`Factura_${venta.clienteNombre}_${fecha}.pdf`);
+  };
+
+  img.onerror = () => {
+    console.error("Error al cargar el logo");
+  };
 };
+
+
+
 
 const Ventas = () => {
   const toast = useToast();
@@ -85,6 +125,22 @@ const Ventas = () => {
     precioUnitario: "",
     total: ""
   });
+
+  const editarVenta = (venta) => {
+  setNuevaVenta({ // o setNuevaVenta si tu estado se llama así
+    clienteId: venta.clienteId || "",
+    producto: venta.producto || "",
+    cantidad: venta.cantidad.toString() || "1",
+    precioUnitario: venta.precioUnitario.toString() || "0",
+    total: (venta.precioUnitario * venta.cantidad).toString(),
+    formaPago: venta.formaPago || "",
+    estado: venta.estado || "",
+    fecha: venta.fecha || ""
+  });
+  setEditandoId(venta.id);
+  onOpen();
+};
+
 
   const obtenerVentas = async () => {
     const data = await getDocs(ventasRef);
